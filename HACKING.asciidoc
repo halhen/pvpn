@@ -1,0 +1,42 @@
+HACKING
+=======
+
+HOMEPAGE
+--------
+
+The master source code repository, bug tracking, etc for  _pvpn_ is
+https://www.github.com/halhen/pvpn. Please report issues here, or to
+henrik@k2h.se.
+
+
+CONTRIBUTING
+------------
+* To contribute, send a patch as a github pull request or using
+  +git format-patch+ to henrik@k2h.se.
+* Keep your patches atomic and complete. Remember documentation.
+* Add yourself to _AUTHORS_.
+* Unless you have a good reason to, rebase your changes to the latest
+  master before submitting.
+* Spend an extra minute to write a proper commit message
+** Describe the effect of the patch, rather than the contents.
+** Use imperative form (e.g. +Change foo+ rather than +Changed foo+)
+** Reference the issue (+#NNN+ or, if fixed, +fixes #NNN+) if
+   applicable.
+** Max 50 characters in the title.
+** Max 72 characters wide lines.
+
+Don't be discouraged or annoyed if I ask you to change your patch before
+I accept it. The reason is probably that I have not been specific enough
+about how I would like patches to be.
+
+
+CHECKLISTS
+----------
+
+Create a new version
+~~~~~~~~~~~~~~~~~~~~
+
+* Update +VERSION+ in +Makefile+
+* Describe changes +NEWS.asciidoc+
+* Commit with version bump commit message
+* +git tag <VERSION>+

@@ -1,0 +1,85 @@
+pvpn(1)
+=======
+:doctype: manpage
+:homepage: https://www.github.com/halhen/pvpn
+
+NAME
+----
+pvpn - VPN over SSH
+
+
+SYNOPSIS
+--------
+pvpn [OPTION] ... SSH-HOST [ROUTE] ...
+
+
+DESCRIPTION
+-----------
+pvpn sets up VPN connections via SSH servers. This can be useful to
+either get easy access to a private network, or to encrypt all Internet
+traffic when on a public network. pvpn is only little more than a
+wrapper around OpenSSH _ssh(1)_, but provides a convenient interface to
+set up VPNs.
+
+
+GENERAL OPTIONS
+---------------
+*-h, --help*::
+  Show help and exit.
+*-v, --version*::
+  Show version and exit.
+*-t, --trace*::
+  Trace code execution.
+
+
+CONNECT OPTIONS
+---------------
+*-i IP1:IP2, --ip IP1:IP2*::
+  Use IP1 for local and IP2 for remote tunnel device IPs. Default
+  +any:any+, which becomes 10.b.c.1:10.b.c.2 where b and c are random.
+*-s SSH-IP, --first-ssh-hop* SSH-IP::
+  Tell IP address of first SSH server. Needed when you connect through
+
+  reverse tunnels or intermediate servers with +ProxyCommand+.
+
+
+EXAMPLES
+--------
+Gain access to the 192.168.xxx.yyy network at work
+
+  $ pvpn -i 10.10.0.1:10.10.0.2 root@work 192.168.0.0/16
+
+Encrypt all IP traffic, e.g. when on a public wifi
+
+  $ pvpn root@secureproxy default
+
+
+PORTABILITY
+-----------
+Works-for-me(TM). Developed and tested on http://archlinux.org[Arch
+Linux]. If you're interested in porting or hacking, see {homepage}.
+
+
+AUHTORS
+-------
+include::AUTHORS[]
+
+
+BUGS
+----
+Please report bugs at {homepage} or to henrik@k2h.se.
+
+
+COPYRIGHT
+---------
+{sys:head -n1 LICENSE}
+
+Released under the BSD 3-Clause License, see LICENSE.
+
+
+SEE ALSO
+--------
+_ssh(1)_, _sshd(8)_, _sshd_config(5)_, _pppd(8)_, _ssh-keygen(1)_,
+_iptables(8)_
+
+// vim: ft=asciidoc

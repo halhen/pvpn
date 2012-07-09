@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+# Copyright (c) 2012, Henrik Hallberg (henrik@k2h.se)
+# All rights reserved.
+#
+# See LICENSE
+
+VERSION=
+
+usage() {
+    echo "Establish VPN through your run of the mill SSH server (with root SSH access)"
+    echo ""
+    echo "See pvpn(1) for a complete reference, or https://www.github.com/halhen/pvpn"
+    echo ""
+    echo "USAGE"
+    echo "-----"
+    echo "  Start tunnel"
+    echo "    $ pvpn [-s first-ssh-hop] [-i clientip:serverip] [user@]ssh-host [route] ..."
+    echo ""
+    echo "    -i|--ip"
+    echo "      Pair of IP addresses for tunnel"
+    echo "      If no -i is given, 10.b.c.1:10.b.c.2, where b and c are random, is used."
+    echo "    -s|--first-ssh-hop"
+    echo "      IP address of the first SSH server you connect to. Use if you connect through"
+    echo "      reverse tunnels or intermediate servers with ProxyCommand."
+    echo ""
+    echo "  Stop tunnel"
+    echo "    $ kill <pid of pppd>"
+    echo ""
+    echo "EXAMPLES"
+    echo "--------"
+    echo "  Gain access to the 192.168.xxx.yyy network at work"
+    echo "    $ pvpn -i 10.10.0.1:10.10.0.2 root@work 192.168.0.0/16"
+    echo ""
+    echo "  Encrypt all IP traffic, e.g. when on a public wifi"
+    echo "    $ pvpn root@secureproxy default"
+    echo ""
+    echo "SEE ALSO"
+    echo "--------"
+    echo "ssh(1), sshd(8), sshd_config(5), pppd(8), ssh-keygen(1), iptables(8)"
+}
+
+do_args() {
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                usage; exit 1;;
+            -v|--version)
+                echo "pvpn v. $VERSION"; exit 1;;
+            -t|--trace)
+                set -x;;
+            -i|--ip)
+                ip_pair="$2"
+                shift;;
+            -s|--first-ssh-hop)
+                ssh_ip="$2"
+                shift;;
+            -*)
+                echo "Unknown argument: $1" >&2; exit 1;;
+            *)
+                break;;
+        esac
+        shift
+    done
+
+    ssh_host="$1"
+    [[ -z "$ssh_host" ]] && echo "Missing ssh-host, see 'pvpn --help'" >&2 && exit 1;
+    shift
+
+    routes=("$@")
+
+    ip_pair="${ip_pair:-any:any}"
+    b=$((RANDOM % 256))
+    c=$((RANDOM % 256))
+    if [[ "${ip_pair%:*}" == "any" ]]; then
+        ip_pair="10.$b.$c.1:${ip_pair#*:}"
+    fi
+    if [[ "${ip_pair#*:}" == "any" ]]; then
+        ip_pair="${ip_pair%:*}:10.$b.$c.2"
+    fi
+}
+
+connect() {
+    pppd updetach noauth silent nodeflate pty \
+         "/usr/bin/ssh -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
+         ipparam vpn "$ip_pair"
+
+    if [[ ${#routes[@]} -gt 0 ]]; then
+        # Add route to ssh host through current gateway
+        current_default=$(ip route show 0.0.0.0/0 | head -n1 | cut -d' ' -f3)
+        ssh_pid=$(ps ax -o"%p %a" | \
+                      awk '$2 == "/usr/bin/ssh" && $4 == "'$ssh_host'" {print $1; exit;}')
+        [[ -z "$ssh_ip" ]] && \
+            ssh_ip=$(ss -np | awk '/,'$ssh_pid',/ {split($5,a,":"); print a[1];}')
+        if [[ -z "$ssh_ip" ]]; then
+            echo "IP of the first SSH hop not found. Consider using the -s switch."
+        else
+            echo "Routing $ssh_ip through current default gateway ($current_default)"
+            ip route add "$ssh_ip" via "$current_default"
+        fi
+
+        for route in "${routes[@]}"; do
+            echo "Routing $route trough tunnel"
+            case route in
+                default|*/0)
+                    ip route replace default via "${ip_pair#*:}";;
+                *)
+                    ip route add "$route" via "${ip_pair#*:}";;
+            esac
+        done
+    fi
+}
+
+do_args "$@"
+connect
