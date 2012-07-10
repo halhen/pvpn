@@ -3,7 +3,7 @@ include config.mk
 export APPLICATION=pvpn
 export VERSION=0.1
 
-MANPAGES = ${APPLICATION}.1
+MANPAGES = ${APPLICATION}.8
 
 .PHONY: all clean install uninstall
 
@@ -16,14 +16,14 @@ install: all
 	install -d ${DESTDIR}${PREFIX}/bin
 	install -m 0755	${APPLICATION} ${DESTDIR}${PREFIX}/bin
 	@sed -i 's|^VERSION=.*|VERSION="${VERSION}"|' ${DESTDIR}${PREFIX}/bin/${APPLICATION}
-	install -d $(DESTDIR)${MANPREFIX}/man1
-	install -m 0664 ${APPLICATION}.1 $(DESTDIR)${MANPREFIX}/man1
+	install -d $(DESTDIR)${MANPREFIX}/man8
+	install -m 0664 ${APPLICATION}.8 $(DESTDIR)${MANPREFIX}/man8
 
 uninstall:
 	@rm ${DESTDIR}${PREFIX}/bin/${APPLICATION}
-	@rm ${DESTDIR}${MANPREFIX}/man1/${APPLICATION}.1
+	@rm ${DESTDIR}${MANPREFIX}/man8/${APPLICATION}.8
 
-%.1: %.1.txt
+%.8: %.8.txt
 	a2x -d manpage -f manpage $<
 
 PKGBUILD: contrib/PKGBUILD.in

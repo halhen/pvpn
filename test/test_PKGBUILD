@@ -39,6 +39,6 @@ try makepkg -f
 
 # Check that LICENSE and manpage are included
 try "pacman -Qlp pvpn-*-1-any.pkg.tar.xz | grep -q 'LICENSE$'"
-try "pacman -Qlp pvpn-*-1-any.pkg.tar.xz | grep -q 'pvpn.1.gz$'"
+try "pacman -Qlp pvpn-*-1-any.pkg.tar.xz | grep -q 'pvpn.8.gz$'"
 
 report

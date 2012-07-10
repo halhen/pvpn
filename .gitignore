@@ -1,3 +1,3 @@
-*.1
+*.[1-8]
 *.html
 PKGBUILD

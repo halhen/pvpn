@@ -1,4 +1,4 @@
-pvpn(1)
+pvpn(8)
 =======
 :doctype: manpage
 :homepage: https://www.github.com/halhen/pvpn

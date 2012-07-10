@@ -10,7 +10,7 @@ VERSION=
 usage() {
     echo "Establish VPN through your run of the mill SSH server (with root SSH access)"
     echo ""
-    echo "See pvpn(1) for a complete reference, or https://www.github.com/halhen/pvpn"
+    echo "See pvpn(8) for a complete reference, or https://www.github.com/halhen/pvpn"
     echo ""
     echo "USAGE"
     echo "-----"

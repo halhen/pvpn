@@ -14,7 +14,7 @@ _pvpn_ is useful to protect your network communication when on a
 public, unencrypted network, or when you need access to a private
 network without any regular VPN infrastructure available.
 
-See _pvpn(1)_ for a complete reference.
+See _pvpn(8)_ for a complete reference.
 
 SYNOPSIS
 --------
