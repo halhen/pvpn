@@ -10,7 +10,7 @@ MANPAGES = ${APPLICATION}.1
 all: $(MANPAGES)
 
 clean:
-	rm -vf $(MANPAGES)
+	rm -vf $(MANPAGES) PKGBUILD
 
 install: all
 	install -d ${DESTDIR}${PREFIX}/bin
@@ -25,3 +25,6 @@ uninstall:
 
 %.1: %.1.txt
 	a2x -d manpage -f manpage $<
+
+PKGBUILD: contrib/PKGBUILD.in
+	@sed 's|^pkgver=.*|pkgver=${VERSION}|' contrib/PKGBUILD.in > PKGBUILD

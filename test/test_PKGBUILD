@@ -1,0 +1,44 @@
+#!/bin/bash
+
+tests=0
+tests_success=0
+
+try() {
+    ((tests += 1))
+    if ! eval "$@"; then
+        fail "\"$@\" failed" >&2
+    else
+        ((tests_success += 1))
+    fi
+}
+
+fail() {
+    echo "$@" >&2
+}
+
+report() {
+    if [[ "$tests_success" == "$tests" ]]; then
+        echo "$tests tests successful"
+        exit 0
+    else
+        echo "$((tests-tests_success))/$tests tests failed"
+        exit 1
+    fi
+}
+
+
+cd "$(dirname "$0")"/..
+basedir="$(pwd)"
+cd "$(mktemp -d)"
+trap "rm -rf \"$(pwd)\"" EXIT
+
+cp -r "$basedir/"* .
+
+try make PKGBUILD
+try makepkg -f
+
+# Check that LICENSE and manpage are included
+try "pacman -Qlp pvpn-*-1-any.pkg.tar.xz | grep -q 'LICENSE$'"
+try "pacman -Qlp pvpn-*-1-any.pkg.tar.xz | grep -q 'pvpn.1.gz$'"
+
+report
