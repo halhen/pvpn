@@ -5,10 +5,15 @@ _pvpn_ is a tool to set up layer 2 VPNs over SSH. It is mostly a wrapper
 around http://www.openssh.org/[OpenSSH] and _pppd(8)_, but provides a
 helpful interface. Given that you fulfil the requirements (root access
 to local machine and SSH server, IP forwarding enabled; see
-<<XREQUIREMENTS, REQUIREMENTS>> for details), you can, for example, reroute all your IP
-traffic through +myserver+ with
+<<XREQUIREMENTS, REQUIREMENTS>> for details), you can, for example,
+reroute all your IP traffic through +myserver+ with
 
     $ pvpn -s root@myserver connect default
+
+_pvpn_ can use several different ways of tunneling, using the _-t_
+option: _ppp_ over _ssh_ (+-t ppp+) or the OpenSSH built-in Layer 3
+tunnel (+-t ssh-3+). The different ways have slightly different
+requirements. See below for details.
 
 _pvpn_ is useful to protect your network communication when on a
 public, unencrypted network, or when you need access to a private
@@ -27,12 +32,16 @@ GENERAL OPTIONS
   Show help and exit.
 *-v, --version*::
   Show version and exit.
-*-t, --trace*::
+*-d, --debug*::
   Trace code execution.
 
 
 CONNECT OPTIONS
 ---------------
+*-t TYPE, --type TYPE*::
+  Type of tunnel. Valid options are:
+  * +ppp+ (ppp over ssh)
+  * +ssh-3+ (OpenSSH Layer 3)
 *-i IP1:IP2, --ip IP1:IP2*::
   Use IP1 for local and IP2 for remote tunnel device IPs. Default
   +any:any+, which becomes 10.b.c.1:10.b.c.2 where b and c are random.
@@ -48,9 +57,9 @@ Gain access to the 192.168.xxx.yyy network at work
 
   $ pvpn -i 10.10.0.1:10.10.0.2 root@work 192.168.0.0/16
 
-Encrypt all IP traffic, e.g. when on a public wifi
+Encrypt all IP traffic, e.g. when on a public wifi using OpenSSH Layer 3
 
-  $ pvpn root@secureproxy default
+  $ pvpn -t ssh-3 root@secureproxy default
 
 Test that traffic is routed through your tunnel with e.g.
 _traceroute(8)_.
@@ -64,6 +73,7 @@ DEPENDENCIES
 - pppd
 - bash
 - iproute2
+- dnsutils (_dig(1)_)
 - asciidoc
 
 
@@ -109,8 +119,6 @@ $ ssh-keygen
 $ ssh-copy-id root@<server>
 ----
 
-* _pppd(8)_ installed on both client server
-
 * IP forwarding enabled on server. It can be enabled by something
   like below, depending on your software stack.
 ----
@@ -119,8 +127,16 @@ $ iptables -P FORWARD ACCEPT
 $ iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 ----
 
-* _iproute2_ installed on client and server (commands _ip(8)_ and
-  _ss(8)_).
+* _iproute2_ installed on client and server (_ip(8)_).
+* _dnsutils_ installed on client (_dig(1)_).
+
+.Tunnel type specific requirements
+[width="50%",options="header"]
+|===================================================================================
+|                              | _ppp_                   | _ssh-3_
+| _sshd_config_ +PermitTunnel+ |                         | +point-to-point+ or +yes+
+| Software                     | _pppd(8)_ on both sides | OpenSSH 4.3+
+|===================================================================================
 
 
 PORTABILITY

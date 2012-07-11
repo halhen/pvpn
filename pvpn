@@ -15,8 +15,12 @@ usage() {
     echo "USAGE"
     echo "-----"
     echo "  Start tunnel"
-    echo "    $ pvpn [-s first-ssh-hop] [-i clientip:serverip] [user@]ssh-host [route] ..."
+    echo "    $ pvpn [option] ... [user@]ssh-host [route] ..."
     echo ""
+    echo "    -t|--type"
+    echo "      Type of tunnel. Valid options are"
+    echo "      * ppp (ppp over ssh)"
+    echo "      * ssh-3 (OpenSSH Layer 3)"
     echo "    -i|--ip"
     echo "      Pair of IP addresses for tunnel"
     echo "      If no -i is given, 10.b.c.1:10.b.c.2, where b and c are random, is used."
@@ -32,13 +36,14 @@ usage() {
     echo "  Gain access to the 192.168.xxx.yyy network at work"
     echo "    $ pvpn -i 10.10.0.1:10.10.0.2 root@work 192.168.0.0/16"
     echo ""
-    echo "  Encrypt all IP traffic, e.g. when on a public wifi"
-    echo "    $ pvpn root@secureproxy default"
+    echo "  Encrypt all IP traffic, e.g. when on a public wifi, using OpenSSH Layer 3"
+    echo "    $ pvpn -t ssh-3 root@secureproxy default"
     echo ""
     echo "SEE ALSO"
     echo "--------"
     echo "ssh(1), sshd(8), sshd_config(5), pppd(8), ssh-keygen(1), iptables(8)"
 }
+
 
 do_args() {
     while [[ "$#" -gt 0 ]]; do
@@ -47,8 +52,18 @@ do_args() {
                 usage; exit 1;;
             -v|--version)
                 echo "pvpn v. $VERSION"; exit 1;;
-            -t|--trace)
+            -d|--debug)
                 set -x;;
+            -t|--type)
+                case "$2" in
+                    ppp)
+                        tunnel_type=ppp;;
+                    ssh-3)
+                        tunnel_type=ssh_layer3;;
+                    *)
+                        echo "Unknown tunnel type '$2'" >&2; exit 1;;
+                esac
+                shift;;
             -i|--ip)
                 ip_pair="$2"
                 shift;;
@@ -69,6 +84,8 @@ do_args() {
 
     routes=("$@")
 
+    # Fill in defaults
+    tunnel_type=${tunnel_type:-ppp}
     ip_pair="${ip_pair:-any:any}"
     b=$((RANDOM % 256))
     c=$((RANDOM % 256))
@@ -80,36 +97,84 @@ do_args() {
     fi
 }
 
-connect() {
+
+connect_ppp() {
     pppd updetach noauth silent nodeflate pty \
          "/usr/bin/ssh -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
          ipparam vpn "$ip_pair"
-
-    if [[ ${#routes[@]} -gt 0 ]]; then
-        # Add route to ssh host through current gateway
-        current_default=$(ip route show 0.0.0.0/0 | head -n1 | cut -d' ' -f3)
-        ssh_pid=$(ps ax -o"%p %a" | \
-                      awk '$2 == "/usr/bin/ssh" && $4 == "'$ssh_host'" {print $1; exit;}')
-        [[ -z "$ssh_ip" ]] && \
-            ssh_ip=$(ss -np | awk '/,'$ssh_pid',/ {split($5,a,":"); print a[1];}')
-        if [[ -z "$ssh_ip" ]]; then
-            echo "IP of the first SSH hop not found. Consider using the -s switch."
-        else
-            echo "Routing $ssh_ip through current default gateway ($current_default)"
-            ip route add "$ssh_ip" via "$current_default"
-        fi
-
-        for route in "${routes[@]}"; do
-            echo "Routing $route trough tunnel"
-            case route in
-                default|*/0)
-                    ip route replace default via "${ip_pair#*:}";;
-                *)
-                    ip route add "$route" via "${ip_pair#*:}";;
-            esac
-        done
-    fi
 }
 
+
+connect_ssh_layer3() {
+    device_pair=$(available_devicepair "$ssh_host" "tun")
+
+    client_ip="${ip_pair%:*}"
+    server_ip="${ip_pair#*:}"
+    client_device="${device_pair%:*}"
+    server_device="${device_pair#*:}"
+    ssh -TCf -oServerAliveInterval=55 \
+             -oTunnel=point-to-point \
+             -w "${client_device#tun}:${server_device#tun}" "$ssh_host" "\
+     ip link set $server_device up; \
+     ip addr add $server_ip/32 peer $client_ip dev $server_device;"
+
+    ip link set $client_device up
+    ip addr add $client_ip/32 peer $server_ip dev $client_device
+}
+
+
+route() {
+    gateway="$1"
+    shift
+
+    # No routes to add; return
+    [[ $# -eq 0 ]] && return 0
+
+    [[ -z "$ssh_ip" ]] && \
+        ssh_ip="$(dig +short "${ssh_host#*@}")"
+
+    # Add route to ssh host through current gateway
+    current_default=$(ip route show 0.0.0.0/0 | head -n1 | cut -d' ' -f3)
+    if [[ -z "$ssh_ip" ]]; then
+        echo "IP of the first SSH hop not found. Consider using the -s switch."
+    else
+        echo "Routing $ssh_ip through current default gateway ($current_default)"
+        ip route add "$ssh_ip" via "$current_default"
+    fi
+
+    while [[ "$#" -gt 0 ]]; do
+        route="$1"
+        echo "Routing $route via $gateway"
+        case route in
+            default|*/0)
+                ip route replace default via "$gateway";;
+            *)
+                ip route add "$route" via "$gateway";;
+        esac
+        shift
+    done
+}
+
+
+available_devicepair() {
+    local ssh_host="$1"
+    local device_type="$2"
+
+    [[ -z "$ssh_host" ]] && die "available_devicepair(): Missing ssh_host"
+    case "$device_type" in
+        tun|tap) :;;
+        "") die "available_devicepair(): Missing device_type";;
+        *)  die "available_devicepair(): Bad device_type '$device_type'";;
+    esac
+
+    cmd_available_tun_device="echo ${device_type}{0..255} | tr ' ' '\n' | shuf | grep -v -f <(ip tuntap | cut -d: -f1) | head -n1"
+    client_tun_device="$(eval $cmd_available_tun_device)"
+    server_tun_device="$(ssh "$ssh_host" $cmd_available_tun_device)"
+
+    echo "$client_tun_device:$server_tun_device"
+}
+
+
 do_args "$@"
-connect
+connect_$tunnel_type
+route "${ip_pair#*:}" "${routes[@]}"

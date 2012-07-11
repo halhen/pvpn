@@ -6,7 +6,7 @@ pkgdesc="VPN over SSH"
 arch=('any')
 url="https://github.com/halhen/pvpn"
 license=('BSD')
-depends=('bash' 'iproute2' 'openssh' 'ppp')
+depends=('bash' 'iproute2' 'openssh' 'dnsutils' 'ppp')
 makedepends=('git' 'asciidoc')
 
 build() {

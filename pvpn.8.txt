@@ -28,12 +28,16 @@ GENERAL OPTIONS
   Show help and exit.
 *-v, --version*::
   Show version and exit.
-*-t, --trace*::
+*-d, --debug*::
   Trace code execution.
 
 
 CONNECT OPTIONS
 ---------------
+*-t TYPE, --type TYPE*::
+  Type of tunnel. Valid options are:
+  * +ppp+ (ppp over ssh)
+  * +ssh-3+ (OpenSSH Layer 3)
 *-i IP1:IP2, --ip IP1:IP2*::
   Use IP1 for local and IP2 for remote tunnel device IPs. Default
   +any:any+, which becomes 10.b.c.1:10.b.c.2 where b and c are random.
@@ -49,9 +53,9 @@ Gain access to the 192.168.xxx.yyy network at work
 
   $ pvpn -i 10.10.0.1:10.10.0.2 root@work 192.168.0.0/16
 
-Encrypt all IP traffic, e.g. when on a public wifi
+Encrypt all IP traffic, e.g. when on a public wifi using OpenSSH Layer 3
 
-  $ pvpn root@secureproxy default
+  $ pvpn -t ssh-3 root@secureproxy default
 
 
 PORTABILITY
