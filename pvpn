@@ -68,7 +68,7 @@ do_args() {
                 ip_pair="$2"
                 shift;;
             -s|--first-ssh-hop)
-                ssh_ip="$2"
+                ssh_ip="$(dig +short $2)"
                 shift;;
             -*)
                 echo "Unknown argument: $1" >&2; exit 1;;
