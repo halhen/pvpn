@@ -1,0 +1,39 @@
+# Prepare for automated tests:
+#   Add utility functions for unit testing
+#   Prepare and move to temporary directory
+
+tests=${tests:-0}
+tests_success=${tests_success:-0}
+
+try() {
+    ((tests += 1))
+    if ! eval "$@"; then
+        fail "\"$@\" failed" >&2
+    else
+        ((tests_success += 1))
+    fi
+}
+
+fail() {
+    echo "$@" >&2
+}
+
+report() {
+    if [[ "$tests_success" == "$tests" ]]; then
+        echo "$tests tests successful"
+        exit 0
+    else
+        echo "$((tests-tests_success))/$tests tests failed"
+        exit 1
+    fi
+}
+
+
+cd "$(dirname "$0")"/..
+basedir="$(pwd)"
+cd "$(mktemp -d)"
+trap "rm -rf \"$(pwd)\"; report" EXIT
+
+cp -r "$basedir/"* .
+
+# vim: ft=sh

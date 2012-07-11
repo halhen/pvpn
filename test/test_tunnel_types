@@ -1,0 +1,19 @@
+#!/bin/bash
+
+. util
+
+ssh_host="$1"
+[[ -z "$ssh_host" ]] && echo "Missing host to test against" >&2 && exit 1
+
+ip_client=10.232.182.1
+ip_server=10.232.182.2
+
+# Test ppp tunnels
+try sudo ./pvpn -t ppp -i "$ip_client:$ip_server" "$ssh_host"
+try "ip route show | grep -q '^$ip_server dev ppp.* src $ip_client'"
+try sudo pkill pppd # TODO: Update to internal disconnect when implemented
+
+# Test ssh-3 tunnels
+try sudo ./pvpn -t ssh-3 -i "$ip_client:$ip_server" "$ssh_host"
+try "ip route show | grep -q '^$ip_server dev tun.* src $ip_client'"
+try sudo pkill ssh # TODO: Update to internal disconnect when implemented
