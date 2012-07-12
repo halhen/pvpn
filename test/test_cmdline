@@ -1,0 +1,9 @@
+#!/bin/bash
+
+. util
+
+ssh_host="$1"
+[[ -z "$ssh_host" ]] && echo "Missing host to test against" >&2 && exit 1
+
+# Test that pvpn won't work unless root
+try ! ./pvpn "$ssh_host" &>/dev/null
