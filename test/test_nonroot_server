@@ -1,0 +1,10 @@
+#!/bin/bash
+
+. util
+
+ssh_host="$1"
+[[ -z "$ssh_host" ]] && echo "Missing host to test against. Make it does not have root access." >&2 && exit 1
+
+# Test that pvpn exits with an error code if we try to connect as non-root
+try ! sudo ./pvpn -t ppp   "$ssh_host"
+try ! sudo ./pvpn -t ssh-3 "$ssh_host"

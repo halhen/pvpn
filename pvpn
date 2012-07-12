@@ -59,7 +59,7 @@ do_args() {
             -h|--help)
                 usage; exit 1;;
             -v|--version)
-                echo "pvpn v. $VERSION"; exit 1;;
+                die "pvpn v. $VERSION";;
             -d|--debug)
                 set -x;;
             -t|--type)
@@ -69,7 +69,7 @@ do_args() {
                     ssh-3)
                         tunnel_type=ssh_layer3;;
                     *)
-                        echo "Unknown tunnel type '$2'" >&2; exit 1;;
+                        die "Unknown tunnel type '$2'";;
                 esac
                 shift;;
             -i|--ip)
@@ -82,7 +82,7 @@ do_args() {
                 disconnect "$2"
                 exit 0;;
             -*)
-                echo "Unknown argument: $1" >&2; exit 1;;
+                die "Unknown argument: $1";;
             *)
                 break;;
         esac
@@ -90,7 +90,7 @@ do_args() {
     done
 
     ssh_host="$1"
-    [[ -z "$ssh_host" ]] && echo "Missing ssh-host, see 'pvpn --help'" >&2 && exit 1;
+    [[ -z "$ssh_host" ]] && die "Missing ssh-host, see 'pvpn --help'"
     shift
 
     routes=("$@")
@@ -113,7 +113,8 @@ connect_ppp() {
     pppd_output=$(mktemp)
     pppd updetach noauth silent nodeflate pty \
          "/usr/bin/ssh -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
-         ipparam vpn "$ip_pair" >"$pppd_output"
+         ipparam vpn "$ip_pair" >"$pppd_output" || \
+            die "pppd failed (exit code $?)"
     read client_device server_device < \
             <(awk '/^Connect/ {print $2 " " $4; exit;}' <"$pppd_output")
     rm "$pppd_output"
@@ -130,16 +131,25 @@ connect_ssh_layer3() {
     client_device="${device_pair%:*}"
     server_device="${device_pair#*:}"
     ssh -TCf -oServerAliveInterval=55 \
+             -oExitOnForwardFailure=yes \
              -oTunnel=point-to-point \
              -w "${client_device#tun}:${server_device#tun}" "$ssh_host" "\
      ip link set $server_device up; \
-     ip addr add $server_ip/32 peer $client_ip dev $server_device;"
+     ip addr add $server_ip/32 peer $client_ip dev $server_device;" || \
+        die "ssh failed (exit code $?)"
 
     pid=$(ps ax -o"%p %a" | awk '$2 == "ssh" && /ip link set '$server_device' up/ {print $1}')
     stop_cmd="kill $pid"
 
-    ip link set $client_device up
-    ip addr add $client_ip/32 peer $server_ip dev $client_device
+    # FIXME: -oExitOnForwardFailure and -f doesn't seem to play along as
+    # nicely as the docs say. Wait a second and fail on the step below instead
+    # if we didn't get a tunnel up
+    sleep 1
+
+    ip link set $client_device up || \
+        die "Failed to set $client_device up"
+    ip addr add $client_ip/32 peer $server_ip dev $client_device || \
+        die "Failed to set $client_ip on $client_device"
 }
 
 
@@ -233,9 +243,14 @@ write_statefile() {
 
 
 check_root() {
-    [[ $(id -u) -eq 0 ]] || echo "Must be root" >&2 && exit 1
+    [[ $(id -u) -eq 0 ]] || die "Must be root"
 }
 
+
+die() {
+    echo "$@" >&2
+    exit 1
+}
 
 check_root
 do_args "$@"
