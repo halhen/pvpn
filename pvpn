@@ -6,6 +6,7 @@
 # See LICENSE
 
 VERSION=
+STATE_DIR=/run/pvpn
 
 usage() {
     echo "Establish VPN through your run of the mill SSH server (with root SSH access)"
@@ -17,19 +18,23 @@ usage() {
     echo "  Start tunnel"
     echo "    $ pvpn [option] ... [user@]ssh-host [route] ..."
     echo ""
-    echo "    -t|--type"
+    echo "    -t TYPE|--type TYPE"
     echo "      Type of tunnel. Valid options are"
     echo "      * ppp (ppp over ssh)"
     echo "      * ssh-3 (OpenSSH Layer 3)"
-    echo "    -i|--ip"
+    echo "    -i IP_PAIR|--ip IP_PAIR"
     echo "      Pair of IP addresses for tunnel"
     echo "      If no -i is given, 10.b.c.1:10.b.c.2, where b and c are random, is used."
-    echo "    -s|--first-ssh-hop"
+    echo "    -s HOST|--first-ssh-hop HOST"
     echo "      IP address or hostname of the first SSH server you connect to. Use if you"
     echo "      connect through reverse tunnels or intermediate servers with ProxyCommand."
     echo ""
     echo "  Stop tunnel"
-    echo "    $ kill <pid of pppd>"
+    echo "    $ pvpn --stop [tunnel]"
+    echo ""
+    echo "    -S TUNNEL|--stop TUNNEL"
+    echo "      Stop tunnel with client device TUNNEL and exit. If no TUNNEL is given, stop"
+    echo "      all tunnels."
     echo ""
     echo "EXAMPLES"
     echo "--------"
@@ -38,6 +43,9 @@ usage() {
     echo ""
     echo "  Encrypt all IP traffic, e.g. when on a public wifi, using OpenSSH Layer 3"
     echo "    $ pvpn -t ssh-3 root@secureproxy default"
+    echo ""
+    echo "  Disconnect tunnel with device ppp0"
+    echo "    $ pvpn -S ppp0"
     echo ""
     echo "SEE ALSO"
     echo "--------"
@@ -70,6 +78,9 @@ do_args() {
             -s|--first-ssh-hop)
                 ssh_ip="$(dig +short $2)"
                 shift;;
+            -S|--stop)
+                disconnect "$2"
+                exit 0;;
             -*)
                 echo "Unknown argument: $1" >&2; exit 1;;
             *)
@@ -99,9 +110,15 @@ do_args() {
 
 
 connect_ppp() {
+    pppd_output=$(mktemp)
     pppd updetach noauth silent nodeflate pty \
          "/usr/bin/ssh -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
-         ipparam vpn "$ip_pair"
+         ipparam vpn "$ip_pair" >"$pppd_output"
+    read client_device server_device < \
+            <(awk '/^Connect/ {print $2 " " $4; exit;}' <"$pppd_output")
+    rm "$pppd_output"
+
+    stop_cmd="kill $(< "/var/run/$client_device.pid")"
 }
 
 
@@ -118,8 +135,27 @@ connect_ssh_layer3() {
      ip link set $server_device up; \
      ip addr add $server_ip/32 peer $client_ip dev $server_device;"
 
+    pid=$(ps ax -o"%p %a" | awk '$2 == "ssh" && /ip link set '$server_device' up/ {print $1}')
+    stop_cmd="kill $pid"
+
     ip link set $client_device up
     ip addr add $client_ip/32 peer $server_ip dev $client_device
+}
+
+
+disconnect() {
+    if [[ -z "$1" ]]; then
+        for filename in $(find "$STATE_DIR" -type f); do
+            disconnect "$(basename "$filename")"
+        done
+        return
+    fi
+
+    filename="$STATE_DIR/$1"
+    source "$filename"
+    $stop_cmd
+    rm "$filename"
+    echo "$1 disconnected"
 }
 
 
@@ -175,6 +211,29 @@ available_devicepair() {
 }
 
 
+write_statefile() {
+    filename="$1"
+    [[ -z "$filename" ]] && filename="$STATE_DIR/$client_device"
+    mkdir -p "$(dirname "$filename")"
+
+    : >"$filename"
+    echo "ssh_host=\"$ssh_host\""           >>"$filename"
+    echo "ssh_ip=\"$ssh_ip\""               >>"$filename"
+    echo "stop_cmd=\"$stop_cmd\""           >>"$filename"
+    echo "tunnel_type=\"$tunnel_type\""     >>"$filename"
+    echo "ip_pair=\"$ip_pair\""             >>"$filename"
+    echo "client_device=\"$client_device\"" >>"$filename"
+    echo "server_device=\"$server_device\"" >>"$filename"
+    echo "routes=("                         >>"$filename"
+        for r in "${routes[@]}"; do
+            echo "\"$r\""                   >>"$filename"
+        done
+    echo ")"                                >>"$filename"
+}
+
+
 do_args "$@"
 connect_$tunnel_type
+echo "$client_device connected"
 route "${ip_pair#*:}" "${routes[@]}"
+write_statefile

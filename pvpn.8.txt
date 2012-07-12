@@ -47,6 +47,13 @@ CONNECT OPTIONS
   +ProxyCommand+.
 
 
+DISCONNECT OPTIONS
+------------------
+*-S [DEVICE], --stop [DEVICE]*::
+  Stop tunnel with client device DEVICE, or all if no DEVICE is given,
+  then exit.
+
+
 EXAMPLES
 --------
 Gain access to the 192.168.xxx.yyy network at work
@@ -62,6 +69,12 @@ PORTABILITY
 -----------
 Works-for-me(TM). Developed and tested on http://archlinux.org[Arch
 Linux]. If you're interested in porting or hacking, see {homepage}.
+
+
+FILES
+-----
+'/run/pvpn/'::
+  Tunnel state files
 
 
 AUTHORS

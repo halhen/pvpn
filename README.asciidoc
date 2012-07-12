@@ -51,6 +51,13 @@ CONNECT OPTIONS
   +ProxyCommand+.
 
 
+DISCONNECT OPTIONS
+------------------
+*-S [DEVICE], --stop [DEVICE]*::
+  Stop tunnel with client device DEVICE, or all if no DEVICE is given,
+  then exit.
+
+
 EXAMPLES
 --------
 Gain access to the 192.168.xxx.yyy network at work
@@ -60,6 +67,10 @@ Gain access to the 192.168.xxx.yyy network at work
 Encrypt all IP traffic, e.g. when on a public wifi using OpenSSH Layer 3
 
   $ pvpn -t ssh-3 root@secureproxy default
+
+Disconnect tunnel with device ppp0
+
+  $ pvpn -S ppp0
 
 Test that traffic is routed through your tunnel with e.g.
 _traceroute(8)_.

@@ -15,5 +15,5 @@ route2=default
 try sudo ./pvpn -i "$ip_client:$ip_server" "$ssh_host" "$route1" "$route2"
 try "ip route show | grep -q '^$route1 via $ip_server .*'"
 try "ip route show | grep -q '^default via $ip_server .*'"
-try sudo pkill pppd # TODO: Update to internal disconnect when implemented
+try sudo ./pvpn -S
 
