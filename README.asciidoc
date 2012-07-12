@@ -1,7 +1,7 @@
 README
 ======
 
-_pvpn_ is a tool to set up layer 2 VPNs over SSH. It is mostly a wrapper
+_pvpn_ is a tool to set up layer 3 VPNs over SSH. It is mostly a wrapper
 around http://www.openssh.org/[OpenSSH] and _pppd(8)_, but provides a
 helpful interface. Given that you fulfil the requirements (root access
 to local machine and SSH server, IP forwarding enabled; see
@@ -46,9 +46,9 @@ CONNECT OPTIONS
   Use IP1 for local and IP2 for remote tunnel device IPs. Default
   +any:any+, which becomes 10.b.c.1:10.b.c.2 where b and c are random.
 *-s SSH-IP, --first-ssh-hop* SSH-IP::
-  Tell IP address of first SSH server. Needed when you connect through
-
-  reverse tunnels or intermediate servers with +ProxyCommand+.
+  Tell IP address or hostname of first SSH server. Needed when you
+  connect through reverse tunnels or intermediate servers with
+  +ProxyCommand+.
 
 
 EXAMPLES
@@ -116,6 +116,7 @@ PermitRootLogin without-password
   root, run
 ----
 $ ssh-keygen
+
 $ ssh-copy-id root@<server>
 ----
 
@@ -123,7 +124,9 @@ $ ssh-copy-id root@<server>
   like below, depending on your software stack.
 ----
 $ sysctl net.ipv4.ip_forward = 1
+
 $ iptables -P FORWARD ACCEPT
+
 $ iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 ----
 

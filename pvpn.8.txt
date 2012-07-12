@@ -42,9 +42,9 @@ CONNECT OPTIONS
   Use IP1 for local and IP2 for remote tunnel device IPs. Default
   +any:any+, which becomes 10.b.c.1:10.b.c.2 where b and c are random.
 *-s SSH-IP, --first-ssh-hop* SSH-IP::
-  Tell IP address of first SSH server. Needed when you connect through
-
-  reverse tunnels or intermediate servers with +ProxyCommand+.
+  Tell IP address or hostname of first SSH server. Needed when you
+  connect through reverse tunnels or intermediate servers with
+  +ProxyCommand+.
 
 
 EXAMPLES
@@ -64,7 +64,7 @@ Works-for-me(TM). Developed and tested on http://archlinux.org[Arch
 Linux]. If you're interested in porting or hacking, see {homepage}.
 
 
-AUHTORS
+AUTHORS
 -------
 include::AUTHORS[]
 
