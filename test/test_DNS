@@ -1,0 +1,21 @@
+#!/bin/bash
+
+. util
+
+ssh_host="$1"
+[[ -z "$ssh_host" ]] && echo "Missing host to test against" >&2 && exit 1
+
+original=$(dig www.google.com | grep 'SERVER:')
+
+# Check that the DNS remains without -D option
+try ./pvpn "$ssh_host"
+try "[[ '$original' == '$(dig www.google.com | grep 'SERVER:')' ]]"
+try ./pvpn -S
+
+# Check that DNS is changed with the -D option
+try ./pvpn -D "$ssh_host"
+try "[[ '$original' != '$(dig www.google.com | grep 'SERVER:')' ]]"
+
+# Check that DNS is reset when disconnecting
+try ./pvpn -S
+try "[[ '$original' == '$(dig www.google.com | grep 'SERVER:')' ]]"

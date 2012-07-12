@@ -45,6 +45,9 @@ CONNECT OPTIONS
   Tell IP address or hostname of first SSH server. Needed when you
   connect through reverse tunnels or intermediate servers with
   +ProxyCommand+.
+*-D, --inherit-dns*::
+  Inherit DNS settings from SSH-HOST. When disconnecting, the current
+  DNS settings will be restored.
 
 
 DISCONNECT OPTIONS

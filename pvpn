@@ -28,6 +28,9 @@ usage() {
     echo "    -s HOST|--first-ssh-hop HOST"
     echo "      IP address or hostname of the first SSH server you connect to. Use if you"
     echo "      connect through reverse tunnels or intermediate servers with ProxyCommand."
+    echo "    -D|--inherit-dns"
+    echo "      Inherit DNS settings from ssh-host. When disconnecting, the current DNS"
+    echo "      settings will be restored."
     echo ""
     echo "  Stop tunnel"
     echo "    $ pvpn --stop [tunnel]"
@@ -78,6 +81,8 @@ do_args() {
             -s|--first-ssh-hop)
                 ssh_ip="$(dig +short $2)"
                 shift;;
+            -D|--inherit-dns)
+                inherit_dns=true;;
             -S|--stop)
                 disconnect "$2"
                 exit 0;;
@@ -97,6 +102,7 @@ do_args() {
 
     # Fill in defaults
     tunnel_type=${tunnel_type:-ppp}
+    inherit_dns="${inherit_dns:-false}"
     ip_pair="${ip_pair:-any:any}"
     b=$((RANDOM % 256))
     c=$((RANDOM % 256))
@@ -155,7 +161,7 @@ connect_ssh_layer3() {
 
 disconnect() {
     if [[ -z "$1" ]]; then
-        for filename in $(find "$STATE_DIR" -type f); do
+        for filename in $(find "$STATE_DIR" -type f -name '[^.]*'); do
             disconnect "$(basename "$filename")"
         done
         return
@@ -163,7 +169,7 @@ disconnect() {
 
     filename="$STATE_DIR/$1"
     source "$filename"
-    $stop_cmd
+    eval $stop_cmd
     rm "$filename"
     echo "$1 disconnected"
 }
@@ -202,6 +208,17 @@ route() {
 }
 
 
+dns() {
+    if ! $inherit_dns; then
+        return
+    fi
+
+    cp /etc/resolv.conf     "$STATE_DIR/.$client_device.pre.resolv.conf"
+    stop_cmd="$stop_cmd; mv '$STATE_DIR/.$client_device.pre.resolv.conf' /etc/resolv.conf"
+
+    scp -q "$ssh_host":/etc/resolv.conf /etc/resolv.conf
+}
+
 available_devicepair() {
     local ssh_host="$1"
     local device_type="$2"
@@ -231,6 +248,7 @@ write_statefile() {
     echo "ssh_ip=\"$ssh_ip\""               >>"$filename"
     echo "stop_cmd=\"$stop_cmd\""           >>"$filename"
     echo "tunnel_type=\"$tunnel_type\""     >>"$filename"
+    echo "inherit_dns=\"$inherit_dns\""     >>"$filename"
     echo "ip_pair=\"$ip_pair\""             >>"$filename"
     echo "client_device=\"$client_device\"" >>"$filename"
     echo "server_device=\"$server_device\"" >>"$filename"
@@ -256,5 +274,6 @@ check_root
 do_args "$@"
 connect_$tunnel_type
 route "${ip_pair#*:}" "${routes[@]}"
+dns
 write_statefile
 echo "$client_device connected"
