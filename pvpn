@@ -120,6 +120,8 @@ do_args() {
 
 
 connect_ppp() {
+    which pppd &>/dev/null || die "pppd(8) missing, install or consider using '-t ssh-3'"
+
     pppd_output=$(mktemp)
     pppd updetach noauth silent nodeflate pty \
          "/usr/bin/ssh -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
