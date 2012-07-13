@@ -40,3 +40,6 @@ Create a new version
 * Describe changes +NEWS.asciidoc+
 * Commit with version bump commit message
 * +git tag <VERSION>+
+* +git push+
+* +git push --tags+
+* make and upload new PKGBUILD to AUR
