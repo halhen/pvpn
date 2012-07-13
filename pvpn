@@ -6,7 +6,11 @@
 # See LICENSE
 
 VERSION=
-STATE_DIR=/run/pvpn
+if [[ -d /run ]]; then
+    STATE_DIR=/run/pvpn
+else
+    STATE_DIR=/var/run/pvpn
+fi
 
 usage() {
     echo "Establish VPN through your run of the mill SSH server (with root SSH access)"
