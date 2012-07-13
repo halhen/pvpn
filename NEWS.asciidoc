@@ -1,3 +1,10 @@
+version 0.2
+-----------
+* Choose tunnel type with '-t'
+* Add tunnel type 'ssh-3'
+* Inherit DNS from server with '-D'
+* Stop started tunnels with '-S'
+
 version 0.1
 -----------
 * Connect VPN over PPP/SSH
