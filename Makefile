@@ -1,7 +1,7 @@
 include config.mk
 
 export APPLICATION=pvpn
-export VERSION=0.2
+export VERSION=0.2.1
 
 MANPAGES = ${APPLICATION}.8
 
