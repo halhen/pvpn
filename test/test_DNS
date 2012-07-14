@@ -19,3 +19,12 @@ try "[[ '$original' != '$(dig www.google.com | grep 'SERVER:')' ]]"
 # Check that DNS is reset when disconnecting
 try ./pvpn -S
 try "[[ '$original' == '$(dig www.google.com | grep 'SERVER:')' ]]"
+
+
+# Check that DNS is reset also at first tunnel (Issue #12)
+rm -rf /run/pvpn
+try ./pvpn -D "$ssh_host"
+try "[[ '$original' != '$(dig www.google.com | grep 'SERVER:')' ]]"
+try ./pvpn -S
+try "[[ '$original' == '$(dig www.google.com | grep 'SERVER:')' ]]"
+

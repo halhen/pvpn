@@ -277,6 +277,7 @@ die() {
 }
 
 check_root
+mkdir -p "$STATE_DIR"
 do_args "$@"
 connect_$tunnel_type
 route "${ip_pair#*:}" "${routes[@]}"
