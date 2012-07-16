@@ -8,7 +8,7 @@ to local machine and SSH server, IP forwarding enabled; see
 <<XREQUIREMENTS, REQUIREMENTS>> for details), you can, for example,
 reroute all your IP traffic through +myserver+ with
 
-    $ pvpn -s root@myserver connect default
+    $ pvpn root@myserver default
 
 _pvpn_ can use several different ways of tunneling, using the _-t_
 option: _ppp_ over _ssh_ (+-t ppp+) or the OpenSSH built-in Layer 3
