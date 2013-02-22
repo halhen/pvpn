@@ -75,6 +75,10 @@ Disconnect tunnel with device ppp0
 
   $ pvpn -S ppp0
 
+Adding additional arguments to SSH:
+
+  $ SSH_ARGS="-i ~/.ssh/id_rsa" 10.10.0.1:10.10.0.2 root@work 192.168.0.0/16
+
 Test that traffic is routed through your tunnel with e.g.
 _traceroute(8)_.
 
