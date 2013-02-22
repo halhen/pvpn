@@ -124,7 +124,7 @@ connect_ppp() {
 
     pppd_output=$(mktemp)
     pppd updetach noauth silent nodeflate pty \
-         "/usr/bin/ssh -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
+         "/usr/bin/ssh ${SSH_ARGS} -oServerAliveInterval=55 '$ssh_host' pppd nodetach notty noauth" \
          ipparam vpn "$ip_pair" >"$pppd_output" || \
             die "pppd failed (exit code $?)"
     read client_device server_device < \
@@ -142,7 +142,7 @@ connect_ssh_layer3() {
     server_ip="${ip_pair#*:}"
     client_device="${device_pair%:*}"
     server_device="${device_pair#*:}"
-    ssh -TCf -oServerAliveInterval=55 \
+    ssh ${SSH_ARGS} -TCf -oServerAliveInterval=55 \
              -oExitOnForwardFailure=yes \
              -oTunnel=point-to-point \
              -w "${client_device#tun}:${server_device#tun}" "$ssh_host" "\
