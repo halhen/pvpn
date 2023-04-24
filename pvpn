@@ -238,7 +238,7 @@ available_devicepair() {
 
     cmd_available_tun_device="echo ${device_type}{0..255} | tr ' ' '\n' | shuf | grep -v -f <(ip tuntap | cut -d: -f1) | head -n1"
     client_tun_device="$(eval $cmd_available_tun_device)"
-    server_tun_device="$(ssh "$ssh_host" $cmd_available_tun_device)"
+    server_tun_device="$(ssh ${SSH_ARGS} "$ssh_host" $cmd_available_tun_device)"
 
     echo "$client_tun_device:$server_tun_device"
 }
